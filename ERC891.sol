@@ -139,11 +139,21 @@ contract ERC891 is Ownable, EIP20 {
   uint256 public fee;
   uint256 diffMask = 3;
   uint256 bitpool = 52;
+  uint256 stepLength = 142857;
+  
+  
+    // State
+  uint256 b0;
+  uint256 bn = 0;
+  uint256 step = 1;
+  
+  
+    // Reward Steps
+  mapping(uint256 => uint256) rewardSteps;
 
 
     // Collection Database
   mapping(address => bool) claimed;
-
 
 
   modifier canMine {
@@ -166,13 +176,16 @@ contract ERC891 is Ownable, EIP20 {
     ----------------------------------------------------- */
 
   function claim() canMine public {
-    uint256 reward = checkFind(msg.sender);
     require(!claimed[msg.sender]);
-   
-    require(reward != MAX_UINT256);
 
+    if(block.number - b0 > stepLength * step) step++;
+    uint256 reward = checkFind(msg.sender);
+   
+    require(reward != 9000);
+
+    
     claimed[msg.sender] = true;
-    balances[msg.sender][reward] = balances[msg.sender][reward] + reward;
+    balances[msg.sender] = balances[msg.sender] + reward;
     
     emit Mine(msg.sender, reward);
   }
@@ -197,20 +210,17 @@ contract ERC891 is Ownable, EIP20 {
         
     ----------------------------------------------------- */
 
-  function checkFind(address _address) view public returns(uint16) {
+  function checkFind(address _address) view public returns(uint256) {
     uint8  bitCount = 0;
     
-    bytes20 difficultyTest = bytes20(_address);
-    bytes20 data = bytes20(_address) & ((1 << bitpool) - 1); 
+    bytes20 data = bytes20(_address) & bytes20((1 << bitpool) - 1); 
 
     while (data != 0) {
       bitCount = bitCount + uint8(data & 1);
       data = data >> 1;
     }
 
-    
-
-    return MAX_UINT256;
+    return rewardSteps[stepLength*step];
   }
 
 }
@@ -218,10 +228,29 @@ contract ERC891 is Ownable, EIP20 {
 
 
 contract Ore is ERC891 {
-
+ /*  ------------------- 
+    2.08480398073
+    0.465798371432
+    0.272238277047
+    0.190886928436
+    0.146059605391
+    0.117732926945
+    0.0982583820002
+ ------------------- */
 
   constructor(uint256 _fee) public {
     fee = _fee * 1000000000000; // 0.001 finney
+    
+    rewardSteps[stepLength*1] = 2084803980730000000;
+    rewardSteps[stepLength*2] = 465798371432000000;
+    rewardSteps[stepLength*3] = 272238277047000000;
+    rewardSteps[stepLength*4] = 190886928436000000;
+    rewardSteps[stepLength*5] = 146059605391000000;
+    rewardSteps[stepLength*6] = 117732926945000000;
+    rewardSteps[stepLength*7] = 98258382000200000;
+    
+    b0 = block.number;
+
   }
 
   function setFee(uint256 _fee) onlyOwner public {
